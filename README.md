@@ -9,7 +9,7 @@ Built for the Software Development Cycle final summative.
 
 ## Live demo
 
-- **Deployed app:** ADD_YOUR_VERCEL_URL_HERE
+- **Deployed app:** https://civic-bridge-steel.vercel.app/
 - **Demo video:** ADD_YOUR_VIDEO_LINK_HERE
 - **SRS document:** ADD_YOUR_SRS_LINK_HERE
 
