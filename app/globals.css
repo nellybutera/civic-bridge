@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f5f0;
+  --foreground: #1a1a1a;
+
+  --indigo: #1b1f3b;
+  --indigo-light: #2a2f5c;
+  --gold: #c89b3c;
+  --gold-light: #e0bc6b;
+  --forest: #1f4b3f;
+  --forest-light: #2d6b58;
+  --ivory: #f7f5f0;
+  --charcoal: #1a1a1a;
+  --line: #dcd6c8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-indigo: var(--indigo);
+  --color-indigo-light: var(--indigo-light);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-forest: var(--forest);
+  --color-forest-light: var(--forest-light);
+  --color-ivory: var(--ivory);
+  --color-charcoal: var(--charcoal);
+  --color-line: var(--line);
+  --font-display: var(--font-newsreader);
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-plex-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--indigo);
+}
