@@ -12,14 +12,22 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [slow, setSlow] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
     }
-    const result = signup(name, email, password);
+    setError("");
+    setSubmitting(true);
+    const slowTimer = setTimeout(() => setSlow(true), 4000);
+    const result = await signup(name, email, password);
+    clearTimeout(slowTimer);
+    setSubmitting(false);
+    setSlow(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -64,11 +72,18 @@ export default function SignupPage() {
           />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {submitting && slow && (
+          <p className="text-xs text-charcoal/40">
+            The backend is waking up from sleep — this can take up to a
+            couple of minutes on the free tier. Hang tight.
+          </p>
+        )}
         <button
           type="submit"
-          className="mt-2 rounded-full bg-gold px-6 py-2.5 text-sm font-semibold text-indigo hover:bg-gold-light"
+          disabled={submitting}
+          className="mt-2 rounded-full bg-gold px-6 py-2.5 text-sm font-semibold text-indigo hover:bg-gold-light disabled:opacity-60"
         >
-          Create account
+          {submitting ? "Creating account…" : "Create account"}
         </button>
       </form>
 

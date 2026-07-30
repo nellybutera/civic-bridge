@@ -1,16 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { CIVIC_CONTENT } from "@/lib/data";
-
-const CATEGORIES = ["All", ...new Set(CIVIC_CONTENT.map((c) => c.category))];
+import { useEffect, useState } from "react";
+import { api, ApiError } from "@/lib/api";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
 
 export default function CivicContentPage() {
+  const [content, setContent] = useState(null);
+  const [error, setError] = useState("");
   const [openId, setOpenId] = useState(null);
   const [filter, setFilter] = useState("All");
 
-  const visible =
-    filter === "All" ? CIVIC_CONTENT : CIVIC_CONTENT.filter((c) => c.category === filter);
+  useEffect(() => {
+    load();
+  }, []);
+
+  function load() {
+    setError("");
+    setContent(null);
+    api
+      .getContent()
+      .then(setContent)
+      .catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't reach the server."));
+  }
+
+  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (!content) return <LoadingState label="Loading civic content" />;
+
+  const categories = ["All", ...new Set(content.map((c) => c.category))];
+  const visible = filter === "All" ? content : content.filter((c) => c.category === filter);
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-14">
@@ -24,7 +42,7 @@ export default function CivicContentPage() {
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <button
             key={c}
             onClick={() => setFilter(c)}

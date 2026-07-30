@@ -2,18 +2,40 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { QUIZZES } from "@/lib/data";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { getResults } from "@/lib/progress";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
 
 export default function QuizzesPage() {
   const { user } = useAuth();
+  const [quizzes, setQuizzes] = useState(null);
+  const [error, setError] = useState("");
   const [results, setResults] = useState({});
 
   useEffect(() => {
-// eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating from localStorage on mount
-    if (user) setResults(getResults(user.id));
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    getResults(user.id)
+      .then(setResults)
+      .catch(() => {});
   }, [user]);
+
+  function load() {
+    setError("");
+    setQuizzes(null);
+    api
+      .getQuizzes()
+      .then(setQuizzes)
+      .catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't reach the server."));
+  }
+
+  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (!quizzes) return <LoadingState label="Loading quizzes" />;
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-14">
@@ -26,7 +48,7 @@ export default function QuizzesPage() {
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
-        {QUIZZES.map((quiz) => {
+        {quizzes.map((quiz) => {
           const result = results[quiz.id];
           return (
             <Link

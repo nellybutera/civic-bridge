@@ -10,12 +10,22 @@ Built for the Software Development Cycle final summative.
 ## Live demo
 
 - **Deployed app:** https://civic-bridge-steel.vercel.app/
+- **Backend API:** https://civic-bridge-api.onrender.com ([repo](https://github.com/nellybutera/civic-bridge-api), [Swagger UI](https://civic-bridge-api.onrender.com/swagger-ui/index.html))
 - **Demo video:** ADD_YOUR_VIDEO_LINK_HERE
 - **SRS document:** ADD_YOUR_SRS_LINK_HERE
 
+### A note on first-load speed
+
+The backend runs on Render's free tier, which sleeps after ~15 minutes with
+no traffic. A GitHub Actions cron in the API repo pings it every 10 minutes
+to keep it warm, but if you're the first visitor after a long gap, the very
+first request (usually logging in) can take up to ~2 minutes while the
+server wakes up — the page will show a "waking up the server" message
+rather than appearing frozen. Every request after that is fast.
+
 ## Demo accounts
 
-The app ships with three seeded accounts so every role can be tested without
+The API seeds three accounts on startup so every role can be tested without
 signing up:
 
 | Role | Email | Password |
@@ -24,15 +34,19 @@ signing up:
 | Moderator | moderator@civicbridge.africa | mod123 |
 | Youth User | youth@civicbridge.africa | youth123 |
 
-You can also click "Continue as guest" from the home page to explore without
-logging in, or use the Sign Up page to create a new Youth User account.
+You can also browse as a guest from the home page without logging in, or use
+the Sign Up page to create a new Youth User account.
 
 ## Tech stack
 
 - **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS v4
-- **Data layer:** client-side persistence (browser storage), seeded on first
-  load — see [Note on the data layer](#note-on-the-data-layer) below
-- **Deployment:** Vercel
+- **Backend:** Spring Boot 4 + PostgreSQL, JWT auth, deployed separately — see
+  [civic-bridge-api](https://github.com/nellybutera/civic-bridge-api)
+- **Deployment:** Vercel (frontend), Render (backend)
+
+This frontend calls the live backend directly over HTTPS
+(`NEXT_PUBLIC_API_URL`, defaulting to the Render URL above if unset) — there
+is no client-side data layer. See [Architecture](#architecture) below.
 
 ## Actors and role permissions
 
@@ -45,6 +59,11 @@ logging in, or use the Sign Up page to create a new Youth User account.
 | Delete/moderate forum posts | No | No | Yes | Yes |
 | Manage regional tracker items | No | No | No | Yes |
 
+Permissions are enforced twice: client-side (`permissionsFor()` in
+`lib/auth-context.js`) for UX, and server-side in the API's
+`RoleAuthorizationFilter` for actual security — the client checks are not
+trusted.
+
 ## Getting started locally
 
 **Prerequisites:** [Node.js 18.18 or later](https://nodejs.org) and npm
@@ -52,7 +71,7 @@ logging in, or use the Sign Up page to create a new Youth User account.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/civic-bridge.git
+   git clone https://github.com/nellybutera/civic-bridge.git
    cd civic-bridge
    ```
 2. Install dependencies:
@@ -66,32 +85,23 @@ logging in, or use the Sign Up page to create a new Youth User account.
 4. Open http://localhost:3000 in your browser.
 5. Log in with any of the demo accounts above, or sign up as a new user.
 
-No environment variables, database, or API keys are required to run this
-project locally.
+By default this points at the live Render backend, so no local database or
+extra setup is required. To run against a local instance of the backend
+instead, set `NEXT_PUBLIC_API_URL=http://localhost:8080` in a `.env.local`
+file (see the [civic-bridge-api README](https://github.com/nellybutera/civic-bridge-api)
+for running that locally).
 
 ## Deploying your own copy (Vercel)
 
-1. Push this repository to your own GitHub account (see "Pushing to GitHub"
-   below).
-2. Go to https://vercel.com and sign in with GitHub.
-3. Click **Add New -> Project**, select this repository, and click **Deploy**.
-   No configuration or environment variables are needed.
-4. Vercel will give you a public URL (e.g. `civic-bridge.vercel.app`) once
-   the build finishes (roughly 1-2 minutes).
-
-## Pushing to GitHub
-
-```bash
-cd civic-bridge
-git init
-git add .
-git commit -m "Initial commit: Civic Bridge Africa prototype"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/civic-bridge.git
-git push -u origin main
-```
-Make sure the repository is set to **Public** in GitHub's repository settings
-(Settings -> General -> Danger Zone -> Change visibility).
+1. Push this repository to your own GitHub account.
+2. Go to https://vercel.com and sign in (Continue with Email works even if
+   "Continue with GitHub" conflicts with an existing account on the same
+   email — connect GitHub afterward under Settings → Git).
+3. Click **Add New → Project**, select this repository, and set **Root
+   Directory** to `civic-bridge` if your repo has the same nested folder
+   layout as this one.
+4. Click **Deploy**. No environment variables are required unless you're
+   pointing at your own backend instead of the live one above.
 
 ## Project structure
 
@@ -107,29 +117,28 @@ app/
   forum/page.js              Discussion forum (post + moderate)
   regional-tracker/page.js   AU/EAC initiative progress tracker
 lib/
-  auth-context.js            Auth state, roles, permissions
-  data.js                    Seed content (civic content, quizzes, tracker, forum)
-  progress.js                Quiz result persistence
-  storage.js                 Browser-storage read/write helpers
+  api.js                     Fetch client for the Spring Boot API
+  auth-context.js            Auth state (calls /api/auth), roles, permissions
+  progress.js                Quiz result submission/retrieval via the API
+  storage.js                 Browser-storage helper (session token only)
 components/
-  Navbar.js, Footer.js, CivicPulseBar.js, RequireAuth.js
+  Navbar.js, Footer.js, CivicPulseBar.js, StatusBadge.js,
+  RequireAuth.js, LoadingState.js, ErrorState.js
 ```
 
-## Note on the data layer
+## Architecture
 
-The SRS specifies a Next.js + Java/Spring Boot + PostgreSQL architecture.
-For this prototype, given the implementation timeline, the backend and
-database were simplified to client-side persistence (data is seeded once
-and stored in the browser) so the full user-facing feature set — auth,
-role permissions, quizzes, forum, tracker — could be built and deployed
-without standing up separate backend infrastructure. Swapping in a real
-API layer (Spring Boot) backed by PostgreSQL is the natural next step and
-would require no changes to the page components beyond replacing the
-functions in `lib/` with API calls.
+This frontend and the [Spring Boot API](https://github.com/nellybutera/civic-bridge-api)
+are two independently deployed repos that talk over HTTPS — matching the
+SRS's intended Next.js + Spring Boot + PostgreSQL design. Login and signup
+return a JWT (`lib/auth-context.js`), which is attached as a Bearer token on
+every write (posting to the forum, submitting a quiz result, managing the
+tracker). Reads are public. The only thing kept in the browser is the
+session token itself, in `localStorage`, so a refresh doesn't log you out.
 
 ## Known limitations
 
-- Data resets if browser storage is cleared, and is not shared across
-  devices/browsers (no real backend yet — see note above).
-- Passwords are stored in plain text for demo purposes only; this is not
-  production-ready authentication.
+- First request after backend idle time is slow (see the note above) —
+  this is a Render free-tier constraint, not an application bug.
+- Passwords are hashed (BCrypt) server-side, but there's no password-reset
+  flow or email verification — out of scope for this prototype.

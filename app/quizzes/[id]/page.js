@@ -1,26 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { QUIZZES } from "@/lib/data";
+import { api, ApiError } from "@/lib/api";
 import { useAuth, permissionsFor } from "@/lib/auth-context";
 import { saveResult } from "@/lib/progress";
 import CivicPulseBar from "@/components/CivicPulseBar";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
 
 export default function QuizDetailPage() {
   const { id } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const perms = permissionsFor(user);
-  const quiz = QUIZZES.find((q) => q.id === id);
 
+  const [quiz, setQuiz] = useState(null);
+  const [loadError, setLoadError] = useState("");
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  if (!quiz) {
-    return <div className="px-5 py-20 text-center text-charcoal/60">Quiz not found.</div>;
+  useEffect(() => {
+    load();
+  }, [id]);
+
+  function load() {
+    setLoadError("");
+    setQuiz(null);
+    api
+      .getQuiz(id)
+      .then(setQuiz)
+      .catch((e) => setLoadError(e instanceof ApiError ? e.message : "Couldn't reach the server."));
   }
+
+  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
+  if (!quiz) return <LoadingState label="Loading quiz" />;
 
   if (!perms.canTakeQuiz) {
     return (
@@ -47,15 +63,27 @@ export default function QuizDetailPage() {
       )
     : 0;
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setSubmitError("");
+    setSubmitting(true);
     const scorePercent = Math.round(
       (quiz.questions.filter((q) => answers[q.id] === q.answerIndex).length /
         quiz.questions.length) *
         100
     );
-    saveResult(user.id, quiz.id, scorePercent);
-    setSubmitted(true);
+    try {
+      await saveResult(user.id, quiz.id, scorePercent, user.token);
+      setSubmitted(true);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        logout();
+        return;
+      }
+      setSubmitError(e instanceof ApiError ? e.message : "Couldn't save your result. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -140,11 +168,13 @@ export default function QuizDetailPage() {
             </div>
           </fieldset>
         ))}
+        {submitError && <p className="text-sm text-red-600">{submitError}</p>}
         <button
           type="submit"
-          className="rounded-full bg-gold px-6 py-2.5 text-sm font-semibold text-indigo hover:bg-gold-light"
+          disabled={submitting}
+          className="rounded-full bg-gold px-6 py-2.5 text-sm font-semibold text-indigo hover:bg-gold-light disabled:opacity-60"
         >
-          Submit answers
+          {submitting ? "Submitting…" : "Submit answers"}
         </button>
       </form>
     </div>

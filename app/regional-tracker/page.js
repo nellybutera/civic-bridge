@@ -2,49 +2,67 @@
 
 import { useEffect, useState } from "react";
 import { useAuth, permissionsFor } from "@/lib/auth-context";
-import { readStore, writeStore } from "@/lib/storage";
-import { REGIONAL_TRACKER } from "@/lib/data";
+import { api, ApiError } from "@/lib/api";
 import CivicPulseBar from "@/components/CivicPulseBar";
 import StatusBadge from "@/components/StatusBadge";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
 
-const TRACKER_KEY = "civicbridge_regional_tracker";
 const STATUS_OPTIONS = ["Early Stage", "Active Implementation", "In Force", "Stalled"];
 
 export default function RegionalTrackerPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const perms = permissionsFor(user);
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [form, setForm] = useState({ initiative: "", status: "Early Stage", progress: 10, note: "" });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
 
   useEffect(() => {
-    const existing = readStore(TRACKER_KEY, null);
-    if (!existing) {
-      writeStore(TRACKER_KEY, REGIONAL_TRACKER);
-// eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating from localStorage on mount
-      setItems(REGIONAL_TRACKER);
-    } else {
-      setItems(existing);
-    }
+    load();
   }, []);
 
-  function persist(next) {
-    setItems(next);
-    writeStore(TRACKER_KEY, next);
+  function load() {
+    setLoadError("");
+    setItems(null);
+    api
+      .getTracker()
+      .then(setItems)
+      .catch((e) => setLoadError(e instanceof ApiError ? e.message : "Couldn't reach the server."));
   }
 
-  function handleAdd(e) {
+  function handleApiError(e) {
+    if (e instanceof ApiError && e.status === 401) {
+      logout();
+      return;
+    }
+    setActionError(e instanceof ApiError ? e.message : "Couldn't reach the server.");
+  }
+
+  async function handleAdd(e) {
     e.preventDefault();
     if (!form.initiative.trim()) return;
-    const newItem = { id: "r-" + Date.now(), ...form, progress: Number(form.progress) };
-    persist([newItem, ...items]);
-    setForm({ initiative: "", status: "Early Stage", progress: 10, note: "" });
+    setActionError("");
+    try {
+      const created = await api.createTracker({ ...form, progress: Number(form.progress) }, user.token);
+      setItems((prev) => [created, ...prev]);
+      setForm({ initiative: "", status: "Early Stage", progress: 10, note: "" });
+    } catch (e) {
+      handleApiError(e);
+    }
   }
 
-  function handleRemove(id) {
-    persist(items.filter((i) => i.id !== id));
-    if (editingId === id) setEditingId(null);
+  async function handleRemove(id) {
+    setActionError("");
+    try {
+      await api.deleteTracker(id, user.token);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      if (editingId === id) setEditingId(null);
+    } catch (e) {
+      handleApiError(e);
+    }
   }
 
   function startEdit(item) {
@@ -52,11 +70,20 @@ export default function RegionalTrackerPage() {
     setEditForm({ initiative: item.initiative, status: item.status, progress: item.progress, note: item.note });
   }
 
-  function saveEdit(id) {
-    persist(items.map((i) => (i.id === id ? { ...i, ...editForm, progress: Number(editForm.progress) } : i)));
-    setEditingId(null);
-    setEditForm(null);
+  async function saveEdit(id) {
+    setActionError("");
+    try {
+      const updated = await api.updateTracker(id, { ...editForm, progress: Number(editForm.progress) }, user.token);
+      setItems((prev) => prev.map((i) => (i.id === id ? updated : i)));
+      setEditingId(null);
+      setEditForm(null);
+    } catch (e) {
+      handleApiError(e);
+    }
   }
+
+  if (loadError) return <ErrorState message={loadError} onRetry={load} />;
+  if (!items) return <LoadingState label="Loading the regional tracker" />;
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-14">
@@ -70,6 +97,7 @@ export default function RegionalTrackerPage() {
           ? " You can add, edit, or remove items below."
           : " Guests and Youth Users read the tracker; adding and updating is an Admin action."}
       </p>
+      {actionError && <p className="mt-4 text-sm text-red-600">{actionError}</p>}
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         {items.map((item) => {

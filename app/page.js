@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import CivicPulseBar from "@/components/CivicPulseBar";
 import StatusBadge from "@/components/StatusBadge";
-import { CIVIC_CONTENT, REGIONAL_TRACKER } from "@/lib/data";
+import { api } from "@/lib/api";
 
 const ROLES = [
   { role: "Guest", desc: "Read every article, quiz, forum thread and tracker item." },
@@ -11,10 +14,18 @@ const ROLES = [
 ];
 
 export default function Home() {
-  const avgProgress = Math.round(
-    REGIONAL_TRACKER.reduce((sum, r) => sum + r.progress, 0) / REGIONAL_TRACKER.length
-  );
-  const quickestReads = [...CIVIC_CONTENT].sort((a, b) => a.readMinutes - b.readMinutes).slice(0, 3);
+  const [content, setContent] = useState(null);
+  const [tracker, setTracker] = useState(null);
+
+  useEffect(() => {
+    api.getContent().then(setContent).catch(() => setContent([]));
+    api.getTracker().then(setTracker).catch(() => setTracker([]));
+  }, []);
+
+  const avgProgress = tracker?.length
+    ? Math.round(tracker.reduce((sum, r) => sum + r.progress, 0) / tracker.length)
+    : 0;
+  const quickestReads = content ? [...content].sort((a, b) => a.readMinutes - b.readMinutes).slice(0, 3) : [];
 
   return (
     <div>
@@ -54,17 +65,23 @@ export default function Home() {
             <p className="text-xs font-medium uppercase tracking-[0.15em] text-gold">
               Start with the shortest reads
             </p>
-            <ul className="mt-4 flex flex-col gap-3">
-              {quickestReads.map((item, i) => (
-                <li key={item.id} className="flex items-baseline gap-3">
-                  <span className="font-mono text-xs text-ivory/40">0{i + 1}</span>
-                  <div>
-                    <p className="text-sm text-ivory/90">{item.title}</p>
-                    <p className="font-mono text-xs text-ivory/40">{item.readMinutes} min read</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {content === null ? (
+              <p className="mt-4 text-xs text-ivory/40">Loading…</p>
+            ) : quickestReads.length === 0 ? (
+              <p className="mt-4 text-xs text-ivory/40">Couldn&apos;t load content right now.</p>
+            ) : (
+              <ul className="mt-4 flex flex-col gap-3">
+                {quickestReads.map((item, i) => (
+                  <li key={item.id} className="flex items-baseline gap-3">
+                    <span className="font-mono text-xs text-ivory/40">0{i + 1}</span>
+                    <div>
+                      <p className="text-sm text-ivory/90">{item.title}</p>
+                      <p className="font-mono text-xs text-ivory/40">{item.readMinutes} min read</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </section>
@@ -126,17 +143,23 @@ export default function Home() {
             <CivicPulseBar value={avgProgress} label="Average implementation progress" segments={20} />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {REGIONAL_TRACKER.map((item) => (
-              <div key={item.id} className="rounded-xl border border-line bg-white p-5">
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <h3 className="font-medium text-indigo">{item.initiative}</h3>
-                  <StatusBadge status={item.status} />
+          {tracker === null ? (
+            <p className="text-sm text-charcoal/50">Loading the regional tracker…</p>
+          ) : tracker.length === 0 ? (
+            <p className="text-sm text-charcoal/50">Couldn&apos;t load the tracker right now.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {tracker.map((item) => (
+                <div key={item.id} className="rounded-xl border border-line bg-white p-5">
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <h3 className="font-medium text-indigo">{item.initiative}</h3>
+                    <StatusBadge status={item.status} />
+                  </div>
+                  <CivicPulseBar value={item.progress} tone="forest" />
                 </div>
-                <CivicPulseBar value={item.progress} tone="forest" />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

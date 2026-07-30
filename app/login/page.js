@@ -17,10 +17,18 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [slow, setSlow] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    const result = login(email, password);
+    setError("");
+    setSubmitting(true);
+    const slowTimer = setTimeout(() => setSlow(true), 4000);
+    const result = await login(email, password);
+    clearTimeout(slowTimer);
+    setSubmitting(false);
+    setSlow(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -67,11 +75,18 @@ export default function LoginPage() {
               {error} Try again, or use a demo account on the right.
             </p>
           )}
+          {submitting && slow && (
+            <p className="text-xs text-charcoal/40">
+              The backend is waking up from sleep — this can take up to a
+              couple of minutes on the free tier. Hang tight.
+            </p>
+          )}
           <button
             type="submit"
-            className="mt-2 rounded-full bg-indigo px-6 py-2.5 text-sm font-semibold text-ivory hover:bg-indigo-light"
+            disabled={submitting}
+            className="mt-2 rounded-full bg-indigo px-6 py-2.5 text-sm font-semibold text-ivory hover:bg-indigo-light disabled:opacity-60"
           >
-            Log in
+            {submitting ? "Logging in…" : "Log in"}
           </button>
         </form>
 

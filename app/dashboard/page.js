@@ -5,22 +5,17 @@ import { useEffect, useState } from "react";
 import { useAuth, permissionsFor } from "@/lib/auth-context";
 import RequireAuth from "@/components/RequireAuth";
 import CivicPulseBar from "@/components/CivicPulseBar";
-import { readStore } from "@/lib/storage";
-import { CIVIC_CONTENT, QUIZZES, REGIONAL_TRACKER, SEED_FORUM_POSTS } from "@/lib/data";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
+import { api, ApiError } from "@/lib/api";
 import { getResults } from "@/lib/progress";
 
-const USERS_KEY = "civicbridge_users";
-const RESULTS_KEY = "civicbridge_quiz_results";
-const POSTS_KEY = "civicbridge_forum_posts";
-
-const CATEGORIES = [...new Set(CIVIC_CONTENT.map((c) => c.category))];
-
-function moduleBreakdown(results) {
-  return CATEGORIES.map((category) => {
-    const quizIds = QUIZZES.filter((q) => {
-      const content = CIVIC_CONTENT.find((c) => c.id === q.relatedContentId);
-      return content?.category === category;
-    }).map((q) => q.id);
+function moduleBreakdown(content, quizzes, results) {
+  const categories = [...new Set(content.map((c) => c.category))];
+  return categories.map((category) => {
+    const quizIds = quizzes
+      .filter((q) => content.find((c) => c.id === q.relatedContentId)?.category === category)
+      .map((q) => q.id);
     const scores = quizIds
       .map((id) => results[id]?.scorePercent)
       .filter((v) => v !== undefined);
@@ -95,40 +90,44 @@ function QuickLinks({ counts }) {
 function DashboardContent() {
   const { user } = useAuth();
   const perms = permissionsFor(user);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
   const [results, setResults] = useState({});
-  const [counts, setCounts] = useState({ content: 0, quizzes: 0, completed: 0, posts: 0, tracker: 0 });
-  const [platform, setPlatform] = useState({ userCount: 0, activeLearners: 0 });
+
+  useEffect(() => {
+    load();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
-    const ownResults = getResults(user.id);
-    const posts = readStore(POSTS_KEY, SEED_FORUM_POSTS);
-    const allUsers = readStore(USERS_KEY, []);
-    const allResults = readStore(RESULTS_KEY, {});
-    const activeLearners = Object.values(allResults).filter(
-      (r) => Object.keys(r).length > 0
-    ).length;
-
-// eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating from localStorage on mount
-    setResults(ownResults);
-    setCounts({
-      content: CIVIC_CONTENT.length,
-      quizzes: QUIZZES.length,
-      completed: Object.keys(ownResults).length,
-      posts: posts.length,
-      tracker: REGIONAL_TRACKER.length,
-    });
-    setPlatform({ userCount: allUsers.length, activeLearners });
+    getResults(user.id)
+      .then(setResults)
+      .catch(() => {});
   }, [user]);
 
-  const completed = counts.completed;
+  function load() {
+    setError("");
+    setData(null);
+    Promise.all([api.getContent(), api.getQuizzes(), api.getTracker(), api.getForum()])
+      .then(([content, quizzes, tracker, posts]) => setData({ content, quizzes, tracker, posts }))
+      .catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't reach the server."));
+  }
+
+  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (!data) return <LoadingState label="Loading your dashboard" />;
+
+  const completed = Object.keys(results).length;
   const avgScore = completed
     ? Math.round(Object.values(results).reduce((s, r) => s + r.scorePercent, 0) / completed)
     : 0;
-  const breakdown = moduleBreakdown(results);
-  const platformPulse = platform.userCount
-    ? Math.round((platform.activeLearners / platform.userCount) * 100)
-    : 0;
+  const breakdown = moduleBreakdown(data.content, data.quizzes, results);
+  const counts = {
+    content: data.content.length,
+    quizzes: data.quizzes.length,
+    completed,
+    posts: data.posts.length,
+    tracker: data.tracker.length,
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-14">
@@ -154,12 +153,10 @@ function DashboardContent() {
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-forest">
               Admin tools · only visible to admins
             </p>
-            <h2 className="mt-2 font-display text-xl italic text-indigo">
-              Platform pulse: {platformPulse}%
-            </h2>
+            <h2 className="mt-2 font-display text-xl italic text-indigo">Platform at a glance</h2>
             <p className="mt-1 text-sm text-charcoal/70">
-              of registered users have completed at least one quiz ({platform.activeLearners} of{" "}
-              {platform.userCount}).
+              {counts.content} content items · {counts.quizzes} quizzes · {counts.tracker} tracker
+              initiatives · {counts.posts} forum posts.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
