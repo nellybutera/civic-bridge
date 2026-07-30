@@ -169,13 +169,13 @@ export default function RegionalTrackerPage() {
                 <div className="mt-3 flex gap-3">
                   <button
                     onClick={() => startEdit(item)}
-                    className="text-xs font-medium text-indigo hover:underline"
+                    className="rounded-full border border-line px-3 py-1 text-xs font-medium text-indigo hover:border-indigo/40 hover:bg-indigo/5"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleRemove(item.id)}
-                    className="text-xs font-medium text-red-600 hover:underline"
+                    className="rounded-full border border-line px-3 py-1 text-xs font-medium text-red-600 hover:border-red-300 hover:bg-red-50"
                   >
                     Remove
                   </button>

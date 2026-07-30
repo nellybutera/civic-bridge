@@ -157,7 +157,7 @@ export default function ForumPage() {
               {perms.canModerate && (
                 <button
                   onClick={() => handleDelete(p.id)}
-                  className="whitespace-nowrap text-xs font-medium text-red-600 hover:underline"
+                  className="whitespace-nowrap rounded-full border border-line px-3 py-1 text-xs font-medium text-red-600 hover:border-red-300 hover:bg-red-50"
                 >
                   Delete
                 </button>

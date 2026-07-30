@@ -215,7 +215,7 @@ export default function CivicContentPage() {
               </div>
               {open && (
                 <div className="mt-4 border-t border-line pt-4">
-                  <p className="text-sm leading-relaxed text-charcoal/80">{item.body}</p>
+                  <p className="text-sm leading-[1.7] text-charcoal/80">{item.body}</p>
                   {item.sourceUrl && (
                     <a
                       href={item.sourceUrl}
@@ -232,24 +232,24 @@ export default function CivicContentPage() {
                   </p>
                 </div>
               )}
-              <div className="mt-4 flex items-center gap-4">
+              <div className="mt-4 flex items-center gap-3">
                 <button
                   onClick={() => setOpenId(open ? null : item.id)}
-                  className="text-sm font-medium text-indigo underline"
+                  className="text-sm font-semibold text-indigo hover:text-indigo-light"
                 >
-                  {open ? "Show less" : "Read more"}
+                  {open ? "Show less ↑" : "Read more →"}
                 </button>
                 {perms.canManageContent && (
                   <>
                     <button
                       onClick={() => startEdit(item)}
-                      className="text-xs font-medium text-indigo hover:underline"
+                      className="rounded-full border border-line px-3 py-1 text-xs font-medium text-indigo hover:border-indigo/40 hover:bg-indigo/5"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleRemove(item.id)}
-                      className="text-xs font-medium text-red-600 hover:underline"
+                      className="rounded-full border border-line px-3 py-1 text-xs font-medium text-red-600 hover:border-red-300 hover:bg-red-50"
                     >
                       Remove
                     </button>

@@ -42,3 +42,32 @@ body {
   background: var(--gold);
   color: var(--indigo);
 }
+
+/* Card elevation — the app's white/ivory pairing reads flat with a border
+   alone; a quiet shadow gives cards actual lift off the page. Targets the
+   existing `border-line` + `bg-white` utility pairing everywhere it's used,
+   so no JSX changes are needed. */
+.border-line.bg-white {
+  box-shadow:
+    0 1px 2px rgba(27, 31, 59, 0.04),
+    0 10px 24px -18px rgba(27, 31, 59, 0.16);
+}
+
+/* Subtle top-lit gradients instead of flat fills on the two brand blocks —
+   applies everywhere bg-indigo / bg-gold are used, from full hero sections
+   down to small pill buttons, at a strength subtle enough to read as
+   material rather than decoration. */
+.bg-indigo {
+  background-image: linear-gradient(165deg, var(--indigo-light) 0%, var(--indigo) 55%);
+}
+.bg-gold {
+  background-image: linear-gradient(165deg, var(--gold-light) 0%, var(--gold) 65%);
+}
+
+/* Tabular figures wherever numbers appear in the display/data faces, so
+   scores, percentages, and question counts don't jitter width as they
+   change or line up in a column. */
+.font-display,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
