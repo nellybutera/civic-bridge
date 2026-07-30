@@ -10,7 +10,7 @@ Built for the Software Development Cycle final summative.
 ## Live demo
 
 - **Deployed app:** https://civic-bridge-steel.vercel.app/
-- **Backend API:** https://civic-bridge-api.onrender.com ([repo](https://github.com/nellybutera/civic-bridge-api), [Swagger UI](https://civic-bridge-api.onrender.com/swagger-ui/index.html))
+- **Backend API (Swagger UI):** https://civic-bridge-api.onrender.com/swagger-ui/index.html ([repo](https://github.com/nellybutera/civic-bridge-api)) — the bare root URL returns a 500 by design (no landing route), so Swagger is the link to use to see the API live
 - **Demo video:** ADD_YOUR_VIDEO_LINK_HERE
 - **SRS document:** https://docs.google.com/document/d/1X3lUw-EJw0zpg27KlR0judLzAulZHfM29sC_SSEPRic/edit (v1.1 — includes a delivery-status appendix reconciling the pilot against the original spec)
 
