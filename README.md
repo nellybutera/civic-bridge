@@ -58,6 +58,7 @@ is no client-side data layer. See [Architecture](#architecture) below.
 | Post in the forum | No | Yes | Yes | Yes |
 | Delete/moderate forum posts | No | No | Yes | Yes |
 | Manage regional tracker items | No | No | No | Yes |
+| Publish/edit/remove civic content | No | No | No | Yes |
 
 Permissions are enforced twice: client-side (`permissionsFor()` in
 `lib/auth-context.js`) for UX, and server-side in the API's
@@ -107,20 +108,22 @@ for running that locally).
 
 ```
 app/
-  page.js                   Landing page (problem, solution, regional pulse)
-  login/page.js              Log in
-  signup/page.js             Sign up (creates a Youth User)
-  dashboard/page.js          Role-aware dashboard (protected route)
-  civic-content/page.js      Governance/civic-rights explainers
-  quizzes/page.js            Quiz list
-  quizzes/[id]/page.js       Take a quiz, see your score
-  forum/page.js              Discussion forum (post + moderate)
-  regional-tracker/page.js   AU/EAC initiative progress tracker
+  page.js                    Landing page (problem, solution, regional pulse)
+  login/page.js               Log in
+  signup/page.js              Sign up (creates a Youth User)
+  dashboard/page.js           Role-aware dashboard (protected route)
+  civic-content/page.js       Explainers; Admin can publish/edit/remove
+  quizzes/page.js             Quiz list
+  quizzes/[id]/page.js        Take a quiz, see your score
+  forum/page.js               Discussion forum, organized into topic rooms
+  regional-tracker/page.js    AU/EAC initiative progress tracker
+  community-guidelines/page.js  Moderation rules and political-neutrality policy
+  faq/page.js                 Help / FAQ
 lib/
-  api.js                     Fetch client for the Spring Boot API
-  auth-context.js            Auth state (calls /api/auth), roles, permissions
-  progress.js                Quiz result submission/retrieval via the API
-  storage.js                 Browser-storage helper (session token only)
+  api.js                      Fetch client for the Spring Boot API
+  auth-context.js             Auth state (calls /api/auth), roles, permissions
+  progress.js                 Quiz result submission/retrieval via the API
+  storage.js                  Browser-storage helper (session token only)
 components/
   Navbar.js, Footer.js, CivicPulseBar.js, StatusBadge.js,
   RequireAuth.js, LoadingState.js, ErrorState.js
@@ -141,4 +144,23 @@ session token itself, in `localStorage`, so a refresh doesn't log you out.
 - First request after backend idle time is slow (see the note above) —
   this is a Render free-tier constraint, not an application bug.
 - Passwords are hashed (BCrypt) server-side, but there's no password-reset
-  flow or email verification — out of scope for this prototype.
+  flow or email verification.
+- **Google OAuth is not implemented** — email/password only. The SRS lists
+  OAuth as a login option; adding it would require registering an OAuth
+  client and a callback flow, which is out of scope for this pilot build.
+- **No profile management page** — users can't yet update their display
+  name or notification preferences after signup.
+- **No admin user-management panel** — Admins can manage content and the
+  regional tracker, but there's no UI (or backend endpoint) yet to list
+  users, suspend accounts, or assign roles. Role changes currently require
+  a direct database update.
+- **No account lockout after failed logins** — the SRS specifies locking an
+  account for 15 minutes after 5 failed attempts; this isn't enforced.
+- **Forum posts don't support replies** — posting and moderating (delete)
+  work; threaded replies to an existing post are not implemented.
+- **No flag-based moderation queue** — Moderators/Admins can delete any
+  post directly; there's no reader-facing "flag" button or automatic
+  hide-at-3-flags queue as described in the SRS.
+- Civic content is organized by category rather than personalized to a
+  user's selected country/regional bloc, and there's no keyword search or
+  date-range filter yet — only category filtering.
