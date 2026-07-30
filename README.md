@@ -12,7 +12,7 @@ Built for the Software Development Cycle final summative.
 - **Deployed app:** https://civic-bridge-steel.vercel.app/
 - **Backend API:** https://civic-bridge-api.onrender.com ([repo](https://github.com/nellybutera/civic-bridge-api), [Swagger UI](https://civic-bridge-api.onrender.com/swagger-ui/index.html))
 - **Demo video:** ADD_YOUR_VIDEO_LINK_HERE
-- **SRS document:** ADD_YOUR_SRS_LINK_HERE
+- **SRS document:** https://docs.google.com/document/d/1X3lUw-EJw0zpg27KlR0judLzAulZHfM29sC_SSEPRic/edit (v1.1 — includes a delivery-status appendix reconciling the pilot against the original spec)
 
 ### A note on first-load speed
 
