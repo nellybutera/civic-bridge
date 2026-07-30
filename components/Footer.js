@@ -8,8 +8,9 @@ const LEARN_LINKS = [
 
 const COMMUNITY_LINKS = [
   { href: "/forum", label: "Forum" },
-  { href: "/forum", label: "Moderation rules" },
-  { href: "/civic-content", label: "Sources" },
+  { href: "/community-guidelines", label: "Community Guidelines" },
+  { href: "/faq", label: "FAQ" },
+  { href: "https://github.com/nellybutera/civic-bridge", label: "Source code" },
 ];
 
 export default function Footer() {
